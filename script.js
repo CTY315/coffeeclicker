@@ -6,10 +6,17 @@
 
 function updateCoffeeView(coffeeQty) {
   // your code here
+  const coffeeCounter = document.getElementById("coffee_counter");
+  coffeeCounter.innerText = coffeeQty;
 }
 
 function clickCoffee(data) {
   // your code here
+
+  data.coffee++;
+  const coffeeCounter = document.getElementById("coffee_counter");
+  coffeeCounter.innerText = data.coffee;
+  renderProducers(data);
 }
 
 /**************
@@ -18,20 +25,30 @@ function clickCoffee(data) {
 
 function unlockProducers(producers, coffeeCount) {
   // your code here
+  producers.forEach((producer) => {
+    if (coffeeCount >= producer.price / 2) {
+      producer.unlocked = true;
+    }
+  });
 }
 
 function getUnlockedProducers(data) {
   // your code here
+  return data.producers.filter((item) => item.unlocked === true);
 }
 
 function makeDisplayNameFromId(id) {
   // your code here
+  return id
+    .split("_")
+    .map((item) => item[0].toUpperCase() + item.slice(1))
+    .join(" ");
 }
 
 // You shouldn't need to edit this function-- its tests should pass once you've written makeDisplayNameFromId
 function makeProducerDiv(producer) {
-  const containerDiv = document.createElement('div');
-  containerDiv.className = 'producer';
+  const containerDiv = document.createElement("div");
+  containerDiv.className = "producer";
   const displayName = makeDisplayNameFromId(producer.id);
   const currentCost = producer.price;
   const html = `
@@ -49,44 +66,103 @@ function makeProducerDiv(producer) {
   return containerDiv;
 }
 
+//NOT DONE
 function deleteAllChildNodes(parent) {
   // your code here
+  while (parent.childNodes.length) {
+    parent.removeChild(parent.childNodes[0]);
+  }
 }
 
 function renderProducers(data) {
   // your code here
-}
 
+  const producerContainer = document.getElementById("producer_container");
+
+  deleteAllChildNodes(producerContainer);
+
+  unlockProducers(data.producers, data.coffee);
+  const selectUnlock = getUnlockedProducers(data);
+
+  selectUnlock.forEach((item) => {
+    producerContainer.appendChild(makeProducerDiv(item));
+  });
+}
 /**************
  *   SLICE 3
  **************/
 
 function getProducerById(data, producerId) {
   // your code here
+  let obj = {};
+  data.producers.forEach((item) => {
+    if (item.id === producerId) {
+      obj.id = producerId;
+      obj.price = item.price;
+    }
+  });
+  return obj;
 }
 
 function canAffordProducer(data, producerId) {
   // your code here
+  let obj = getProducerById(data, producerId);
+  return data.coffee >= obj.price;
 }
 
 function updateCPSView(cps) {
   // your code here
+  const CoffeePerSec = document.querySelector("#cps");
+
+  CoffeePerSec.innerText = cps;
 }
 
 function updatePrice(oldPrice) {
   // your code here
+  return Math.floor(oldPrice * 1.25);
 }
 
 function attemptToBuyProducer(data, producerId) {
   // your code here
+  let canAfford = canAffordProducer(data, producerId);
+  if (canAffordProducer(data, producerId)) {
+    for (let item of data.producers) {
+      if (item.id === producerId) {
+        item.qty++;
+        data.coffee = data.coffee - item.price;
+        item.price = updatePrice(item.price);
+        data.totalCPS = data.totalCPS + item.cps;
+        // updateCPSView(data.totalCPS);
+      }
+    }
+  }
+  return canAfford;
 }
 
 function buyButtonClick(event, data) {
   // your code here
+  let producerID;
+  if (event.target.tagName === "BUTTON") {
+    producerID = event.target.id.slice(4);
+
+    if (canAffordProducer(data, producerID)) {
+      attemptToBuyProducer(data, producerID);
+      updateCoffeeView(data.coffee);
+      updateCPSView(data.totalCPS);
+    } else {
+      window.alert("Not enough coffee!");
+    }
+
+    //update producers
+    renderProducers(data);
+  }
 }
 
 function tick(data) {
   // your code here
+  data.coffee += data.totalCPS;
+  updateCoffeeView(data.coffee);
+  renderProducers(data);
 }
 
 /*************************
@@ -103,19 +179,19 @@ function tick(data) {
 
 // How does this check work? Node gives us access to a global variable /// called `process`, but this variable is undefined in the browser. So,
 // we can see if we're in node by checking to see if `process` exists.
-if (typeof process === 'undefined') {
+if (typeof process === "undefined") {
   // Get starting data from the window object
   // (This comes from data.js)
   const data = window.data;
 
   // Add an event listener to the giant coffee emoji
-  const bigCoffee = document.getElementById('big_coffee');
-  bigCoffee.addEventListener('click', () => clickCoffee(data));
+  const bigCoffee = document.getElementById("big_coffee");
+  bigCoffee.addEventListener("click", () => clickCoffee(data));
 
   // Add an event listener to the container that holds all of the producers
   // Pass in the browser event and our data object to the event listener
-  const producerContainer = document.getElementById('producer_container');
-  producerContainer.addEventListener('click', event => {
+  const producerContainer = document.getElementById("producer_container");
+  producerContainer.addEventListener("click", (event) => {
     buyButtonClick(event, data);
   });
 
@@ -142,6 +218,6 @@ else if (process) {
     updatePrice,
     attemptToBuyProducer,
     buyButtonClick,
-    tick
+    tick,
   };
 }
